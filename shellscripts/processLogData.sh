@@ -23,7 +23,6 @@ rmdir *
 #Now, uncompress the logs, and separate out the log entries in each directory by the class
 foreach d (prod*)
     cd $d
-    uncompAndDecrypt.sh
     separateClassLogs.py
     cd ..
     end
