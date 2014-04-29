@@ -81,6 +81,7 @@ def makePersonClick(axis, log, outpath, outpath_discards=None, limit=-1):
     parser = tlp.LogParser(axis)
     outcsv = csv.writer(open(outpath, "w"))
     outcsv.writerow(["time", "secs_to_next", "actor", "verb", "object_name", "object_type", "result", "meta", "ip", "event", "event_type", "page", "agent"])
+    outcsv_discards = None
     if outpath_discards is not None: 
         outcsv_discards = csv.writer(open(outpath_discards, "w"))
         outcsv_discards.writerow(["time", "event", "event_type", "page", "username"])

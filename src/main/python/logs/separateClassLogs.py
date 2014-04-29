@@ -14,6 +14,9 @@ import os
 import glob
 import json
 import csv
+import sys
+
+institute = None
        
 def addName(name, filedict, dirName):
     '''
@@ -31,11 +34,22 @@ def getName(line):
     '''
     try:
         dcl = json.loads(line)
-        cl = dcl['context']['course_id']
-        cl = cl[cl.find('/') +1 : ]
-        cl = cl.replace('/', '-')
+        cl = dcl['page']
+        if cl == None or cl.find(institute) == -1:
+          cl = dcl['event_type']
+        if cl == None or cl.find(institute) == -1:
+          cl = dcl['event']['problem_id']
+          
+        if cl.find(institute):
+          loc1 = cl.find(institute)+len(institute)
+          loc2 = cl.find("/",loc1)
+          cl = cl[loc1:loc2]
+        else:
+          cl = ''       
+
+        cl = cl.replace('/','-') 
         if cl == '':
-            cl = 'unknown'
+          cl = 'unknown'
     except ValueError:
         cl = 'unknown'
     return cl
@@ -69,6 +83,8 @@ def get_log_files():
     return fileList
 
 if __name__ == '__main__':
+    institute = sys.argv[1] + '/'
+    print institute
     courseDict = getClassList()
     filedict = {}
     dirName = os.getcwd()
