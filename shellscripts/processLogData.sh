@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/bin/sh
 # Process all of the log data from an edX dump. This script will result in a WeeklyLog for
 # each course, in the course directory, and a Log directory as a sibling of the course
 # directories that will contain the raw files.
@@ -11,21 +11,22 @@
 #first, we get rid of any files that have already been processed, passing in the first date of
 #a log that we want to keep as the command to the scripts
 
-foreach d (*)
-    cd $d
-    cullLogFiles.py $1 $2
-    cd ..
-    end
+# foreach d (*)
+#     cd $d
+#     cullLogFiles.py $1 $2
+#     cd ..
+#     end
 
 #if any of the directories is empty, simply remove it
-rmdir *
+# rmdir *
 
 #Now, uncompress the logs, and separate out the log entries in each directory by the class
-foreach d (prod*)
-    cd $d
-    separateClassLogs.py
+for line in `ls | grep prod`;
+do
+    cd $line
+    separateClassLogs.py $1
     cd ..
-    end
+done
 
 #Build a log for the week for each of the classes, writing the log to the current directory
 buildWeekLog.py

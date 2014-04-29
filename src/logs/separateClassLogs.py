@@ -52,7 +52,7 @@ def getName(line):
           cl = 'unknown'
     except ValueError:
         cl = 'unknown'
-    return cl
+    return cl.strip(u'\u200b')
     
 def getClassList():
     '''
@@ -84,7 +84,6 @@ def get_log_files():
 
 if __name__ == '__main__':
     institute = sys.argv[1] + '/'
-    print institute
     courseDict = getClassList()
     filedict = {}
     dirName = os.getcwd()
@@ -99,13 +98,14 @@ if __name__ == '__main__':
             filedict[cName].write(line)
             if cName not in courseDict:
                 courseDict[cName] = 1
+                print "new:", cName
             else:
                 courseDict[cName] += 1
         infile.close()
     
     for n in iter(filedict):
         filedict[n].close()
-        
+
     clFile = csv.writer(open('../ClassList.csv', 'w'))
     for c in iter(courseDict):
         clFile.writerow([c, courseDict[c]])

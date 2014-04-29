@@ -29,4 +29,8 @@ name_of_institute has to match with with the name in the URL path. For example, 
 
 python src/makePersonClick.py class_log course_axis output_file.csv
 
-kkao@berkeley.edu
+--------------------------------------
+1) add path in evn
+2) processClassData.sh
+3) genetate course axis
+4) processLogData.sh BerkeleyX
