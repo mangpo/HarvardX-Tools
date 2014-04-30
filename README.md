@@ -34,3 +34,8 @@ python src/makePersonClick.py class_log course_axis output_file.csv
 2) processClassData.sh
 3) genetate course axis
 4) processLogData.sh BerkeleyX
+
+TODO
+- write up for Zach
+- screen shot
+- test cllLogFiles

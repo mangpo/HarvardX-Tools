@@ -24,7 +24,7 @@ def addName(name, filedict, dirName):
     for the entries for that course
     '''
     fname = name + '-' + dirName
-    fout = open(fname, 'w')
+    fout = open(fname, 'a')
     filedict[name] = fout
     
 def getName(line):
@@ -98,7 +98,6 @@ if __name__ == '__main__':
             filedict[cName].write(line)
             if cName not in courseDict:
                 courseDict[cName] = 1
-                print "new:", cName
             else:
                 courseDict[cName] += 1
         infile.close()
