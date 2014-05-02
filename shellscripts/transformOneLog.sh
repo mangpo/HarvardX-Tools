@@ -5,4 +5,4 @@
 
 log=$1
 csv=${log:0:`expr length $log - 4`}.csv
-makePersonClick.py $log xxx $csv
+makePersonClick.py $log $2 $csv
