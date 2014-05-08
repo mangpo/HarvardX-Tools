@@ -24,7 +24,7 @@ def addName(name, filedict, dirName):
     for the entries for that course
     '''
     fname = name + '-' + dirName
-    fout = open(fname, 'a')
+    fout = open(fname, 'w')
     filedict[name] = fout
     
 def getName(line):
@@ -38,12 +38,17 @@ def getName(line):
         if cl == None or cl.find(institute) == -1:
           cl = dcl['event_type']
         if cl == None or cl.find(institute) == -1:
+          if not isinstance(dcl['event'],dict):
+            return None
           cl = dcl['event']['problem_id']
           
         if cl.find(institute):
           loc1 = cl.find(institute)+len(institute)
           loc2 = cl.find("/",loc1)
-          cl = cl[loc1:loc2]
+          if loc2 == -1:
+            cl = cl[loc1:]
+          else:
+            cl = cl[loc1:loc2]
         else:
           cl = ''       
 
@@ -93,12 +98,13 @@ if __name__ == '__main__':
         infile = open(logName, 'r')
         for line in infile:
             cName = getName(line)
-            if cName not in filedict:
+            if cName:
+              if cName not in filedict:
                 addName(cName, filedict, dirName)
-            filedict[cName].write(line)
-            if cName not in courseDict:
+              filedict[cName].write(line)
+              if cName not in courseDict:
                 courseDict[cName] = 1
-            else:
+              else:
                 courseDict[cName] += 1
         infile.close()
     
@@ -107,4 +113,7 @@ if __name__ == '__main__':
 
     clFile = csv.writer(open('../ClassList.csv', 'w'))
     for c in iter(courseDict):
+      try:
         clFile.writerow([c, courseDict[c]])
+      except UnicodeEncodeError:
+        print "UnicodeEncodeError at class", c

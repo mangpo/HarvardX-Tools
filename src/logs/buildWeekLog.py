@@ -67,7 +67,7 @@ if __name__ == '__main__':
     for cl in classes:
         print 'about to process logs for', cl
         prodLogs = []
-        logFiles = glob.glob('*/' + cl + '*')
+        logFiles = glob.glob('*/' + cl + '-*')
         for f in logFiles:
             print 'processing log', f
             prodLogs.append(f)
