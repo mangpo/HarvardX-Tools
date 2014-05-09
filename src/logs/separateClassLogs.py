@@ -15,19 +15,17 @@ import glob
 import json
 import csv
 import sys
-
-institute = None
        
-def addName(name, filedict, dirName):
+def addName(name, dirName):
     '''
     Adds the name of a course to the dictionary of courses, and opens a log file 
     for the entries for that course
     '''
     fname = name + '-' + dirName
     fout = open(fname, 'w')
-    filedict[name] = fout
+    return fout
     
-def getName(line):
+def getName(line, institute):
     '''
     Extracts the name of the course from the log entry. If no course name is 
     in the log entry, the log entry goes into the unknown class file
@@ -77,39 +75,57 @@ def getClassList():
         clfile.close()
     return cldict
 
-def get_log_files():
+def get_log_files(startDate, endDate):
     '''
     Returns a sorted list of all of the daily files in the directory. Since the 
     files are sorted by date, the log entries encountered when reading through those
     files will be in time-stamp order.
     '''
-    fileList = glob.glob('20*.log')
+    all_logs = glob.glob('20*.log')
+    fileList = []
+    for f in all_logs:
+      fdate = f[:f.index('_')]
+      if (fdate >= startDate) and (fdate <= endDate):
+        fileList.append(f)
     fileList.sort()
     return fileList
 
 if __name__ == '__main__':
-    institute = sys.argv[1] + '/'
-    courseDict = getClassList()
-    filedict = {}
+    name = sys.argv[1]
+    startDate = sys.argv[2]
+    endDate = sys.argv[3]
+
+    full_name = name.split('-')
+    institute = full_name[0] + '/'
+    course = full_name[1]
+    term = full_name[2]
+    print "Course Name:", course
+
+    courseDict = {}
+    output = None
     dirName = os.getcwd()
     dirName = dirName[dirName.rindex('/')+1:]
-    loglist = get_log_files()
+    loglist = get_log_files(startDate, endDate)
+    print "Processing:"
+    print loglist
     for logName in loglist:
         infile = open(logName, 'r')
         for line in infile:
-            cName = getName(line)
+            cName = getName(line, institute)
             if cName:
-              if cName not in filedict:
-                addName(cName, filedict, dirName)
-              filedict[cName].write(line)
+              if cName == course:
+                if not output:
+                  output = addName(name, dirName)
+                output.write(line)
+
               if cName not in courseDict:
                 courseDict[cName] = 1
               else:
                 courseDict[cName] += 1
         infile.close()
     
-    for n in iter(filedict):
-        filedict[n].close()
+    if output:
+      output.close()
 
     clFile = csv.writer(open('../ClassList.csv', 'w'))
     for c in iter(courseDict):

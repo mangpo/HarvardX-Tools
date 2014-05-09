@@ -12,3 +12,12 @@ Then, you're ready to go!
 # Processing Raw Activity Logs
 
 Please refer to our [wiki](http://github.com/mangpo/edX-datascrub/wiki) on how to use the scripts.
+
+All
+1) generateCourseAxis .
+2) processAll.py info.csv
+
+One Course
+1) generateCourseAxis .
+2) processLogData.sh cname start end
+3) transformOneLog.sh cname course_axis.csv

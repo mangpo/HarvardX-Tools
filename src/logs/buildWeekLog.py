@@ -17,6 +17,7 @@ weeks log files are in the directory, they will all be combined.
 import json
 import glob
 import csv
+import sys
 
 def buildClassList():
     classes = []
@@ -61,18 +62,16 @@ def writeCombLog(fname, log):
     outfile.close()
 
 if __name__ == '__main__':
+    cl = sys.argv[1]
     
-    classes = buildClassList()
-    
-    for cl in classes:
-        print 'about to process logs for', cl
-        prodLogs = []
-        logFiles = glob.glob('*/' + cl + '-*')
-        for f in logFiles:
-            print 'processing log', f
-            prodLogs.append(f)
-        prodDict = combineLogs(cl, prodLogs)
-        writeCombLog(cl + '.log', prodDict)
+    print 'about to process logs for', cl
+    prodLogs = []
+    logFiles = glob.glob('*/' + cl + '-*')
+    for f in logFiles:
+      print 'processing log', f
+      prodLogs.append(f)
+    prodDict = combineLogs(cl, prodLogs)
+    writeCombLog(cl + '.log', prodDict)
 
 
 

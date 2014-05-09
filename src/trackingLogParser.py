@@ -200,35 +200,35 @@ class LogParser:
         '''
 
         # we need to build two axis lookup dicts
-        self.axis_path_to_courseware_name = {} # used for page_view and page_close
-        self.axis_url_name_to_courseware_name = {} # used for everything else
-        current_chapter = ""
-        current_sequential = ""
-        current_vertical = ""
-        for line in csv.reader(open(axis_csv),delimiter=';'):
-            url_name = line[1].strip()
-            category = line[2].strip()
-            name = line[6].strip()
-            path = line[7].strip()
-            courseware_name = ""
+        # self.axis_path_to_courseware_name = {} # used for page_view and page_close
+        # self.axis_url_name_to_courseware_name = {} # used for everything else
+        # current_chapter = ""
+        # current_sequential = ""
+        # current_vertical = ""
+        # for line in csv.reader(open(axis_csv),delimiter=';'):
+        #     url_name = line[1].strip()
+        #     category = line[2].strip()
+        #     name = line[6].strip()
+        #     path = line[7].strip()
+        #     courseware_name = ""
 
-            if(category == "chapter"): 
-                current_chapter = name
-                courseware_name = current_chapter
-            elif(category == "sequential"): 
-                current_sequential = name
-                courseware_name = "/".join([current_chapter, current_sequential])
-            elif(category == "vertical"): 
-                current_vertical = name
-                courseware_name = "/".join([current_chapter, current_sequential, current_vertical])
-            else:
-                # category is a resource
-                # courseware_name looks like: {chapter}/{sequential}/{vertical}/{resource}
-                # sometimes redundant, but most reliable way of uniquely and meaningfully identifying objects
-                courseware_name = "/".join([current_chapter, current_sequential, current_vertical, name])
+        #     if(category == "chapter"): 
+        #         current_chapter = name
+        #         courseware_name = current_chapter
+        #     elif(category == "sequential"): 
+        #         current_sequential = name
+        #         courseware_name = "/".join([current_chapter, current_sequential])
+        #     elif(category == "vertical"): 
+        #         current_vertical = name
+        #         courseware_name = "/".join([current_chapter, current_sequential, current_vertical])
+        #     else:
+        #         # category is a resource
+        #         # courseware_name looks like: {chapter}/{sequential}/{vertical}/{resource}
+        #         # sometimes redundant, but most reliable way of uniquely and meaningfully identifying objects
+        #         courseware_name = "/".join([current_chapter, current_sequential, current_vertical, name])
 
-            self.axis_path_to_courseware_name[path] = courseware_name
-            self.axis_url_name_to_courseware_name[url_name] = courseware_name
+        #     self.axis_path_to_courseware_name[path] = courseware_name
+        #     self.axis_url_name_to_courseware_name[url_name] = courseware_name
 
     def parseActivity(self, log_item):
         '''
@@ -246,6 +246,10 @@ class LogParser:
         except Exception:
             # malformed log_item
             return None
+        
+        e = None
+        e_get = None
+        e_post = None
 
         try:
             e = json.loads(event)
@@ -262,452 +266,462 @@ class LogParser:
             # "event" field is just a string (no key/value pairs)
             pass
 
-        ### VIDEO ###
-        # TODO: is a specific event logged when the user changes playback speed?
-        # TODO: add video_duration to course axes and to the meta field here (use YouTube API)
-        if(re_video_play.search(event_type) or re_video_pause.search(event_type)):
-            # (note: video_play and video_pause are identical other than the verb name)
-            # event_type: [browser] "play_video"
-            # event: "{"id":"i4x-HarvardX-CB22x-video-39c9cccdd02846d998ae5cd894830626","code":"YTOR7kAvl7Y","currentTime":279.088,"speed":"1.0"}"
-            v = "video_play" if "play_video" == event_type else "video_pause"
-            o = self.__getCoursewareObject(event.split("video-")[1].split("\"")[0])
-            r = None
-            m = {"youtube_id": e["code"]}
-            try: m["playback_speed"] = e["speed"]
-            except KeyError: m["playback_speed"] = None
-            try: m["playback_position_secs"] = e["currentTime"] # sometimes this field is missing
-            except KeyError: m["playback_position_secs"] = None
-        elif(re_video_show_transcript.search(event_type) or re_video_hide_transcript.search(event_type)):
-            # event_type: [browser] "show_transcript" or "hide_transcript"
-            # event: '{"id":"i4x-HarvardX-CB22x-video-ffdbfae1bbb34cd9a610c88349c350ec","code":"IWUv8ltEJOs","currentTime":0}'
-            v = "video_show_transcript" if "show_transcript" == event_type else "video_hide_transcript"
-            o = self.__getCoursewareObject(event.split("video-")[1].split("\"")[0])
-            r = None
-            m = {"playback_position_secs": e["currentTime"]}
-        elif(re_video_change_speed.search(event_type)):
-            # event_type: [browser] "speed_change_video"
-            # event: '{"id":"i4x-HarvardX-CB22x-video-a4fc2d96c8354252bb3e405816308828","code":"IERh8MkASDI","current_time":334.4424743652344,"old_speed":"1.50","new_speed":"1.0"}'
-            v = "video_change_speed"
-            o = self.__getCoursewareObject(event.split("video-")[1].split("\"")[0])
-            r = None
-            m = {
-                "youtube_id": e["code"],
-                "playback_position_secs": e["current_time"], # note "current_time" is different than "currentTime"!
-                "new_playback_speed": e["new_speed"],
-                "old_playback_speed": e["old_speed"]
-            }
-        elif(re_video_seek.search(event_type)):
-            # event_type: [browser] "seek_video"
-            # event: '{"id":"i4x-HarvardX-CB22x-video-2b509bcac67b49f9bcc51b85072dcef0","code":"Ct_M-_bP81k","old_time":641.696984,"new_time":709,"type":"onSlideSeek"}'
-            v = "video_seek"
-            o = self.__getCoursewareObject(event.split("video-")[1].split("\"")[0])
-            r = None
-            m = {
-                "youtube_id": e["code"],
-                "new_playback_position_secs": e["new_time"],
-                "old_playback_position_secs": e["old_time"],
-                "type": e["type"]
-            }
+        try:
 
-        ### SEQUENTIAL ###
-        # TODO: give better names to the meta 'new' and 'old' fields (currently just ints)
-        elif(re_seq_goto.search(event_type) or re_seq_next.search(event_type) or re_seq_prev.search(event_type)):
-            # (note: seq_goto, seq_prev, and seq_next are identical other than the verb name)
-            # when a user navigates via sequential, two events are logged...
-            # event_type: [server] "/courses/HarvardX/ER22x/2013_Spring/modx/i4x://HarvardX/ER22x/sequential/lecture_01/goto_position"
-            # event_type: [browser] "seq_goto" <-- we use this one
-            # event: "{"old":1,"new":2,"id":"i4x://HarvardX/CB22x/sequential/fed323e44ab14407907a7f401f1bfa87"}"
-            v = event_type
-            try: o = self.__getCoursewareObject(event.split("sequential/")[1].split("\"")[0])
-            except IndexError: 
-                o = self.__getCoursewareObject(event.split("videosequence/")[1].split("\"")[0]) # used in PH207x
-            r = None
-            m = {
-                "new": e["new"],
-                "id": e["id"]
-            } 
-            try: m["old"] = e["old"] # sometimes the "old" field is missing
-            except KeyError: m["old"] = None
+          ### VIDEO ###
+          # TODO: is a specific event logged when the user changes playback speed?
+          # TODO: add video_duration to course axes and to the meta field here (use YouTube API)
+          if(re_video_play.search(event_type) or re_video_pause.search(event_type)):
+              # (note: video_play and video_pause are identical other than the verb name)
+              # event_type: [browser] "play_video"
+              # event: "{"id":"i4x-HarvardX-CB22x-video-39c9cccdd02846d998ae5cd894830626","code":"YTOR7kAvl7Y","currentTime":279.088,"speed":"1.0"}"
+              v = "video_play" if "play_video" == event_type else "video_pause"
+              o = self.__getCoursewareObject(event.split("video-")[1].split("\"")[0])
+              r = None
+              m = {"youtube_id": e["code"]}
+              try: m["playback_speed"] = e["speed"]
+              except KeyError: m["playback_speed"] = None
+              try: m["playback_position_secs"] = e["currentTime"] # sometimes this field is missing
+              except KeyError: m["playback_position_secs"] = None
+          elif(re_video_show_transcript.search(event_type) or re_video_hide_transcript.search(event_type)):
+              # event_type: [browser] "show_transcript" or "hide_transcript"
+              # event: '{"id":"i4x-HarvardX-CB22x-video-ffdbfae1bbb34cd9a610c88349c350ec","code":"IWUv8ltEJOs","currentTime":0}'
+              v = "video_show_transcript" if "show_transcript" == event_type else "video_hide_transcript"
+              o = self.__getCoursewareObject(event.split("video-")[1].split("\"")[0])
+              r = None
+              m = {"playback_position_secs": e["currentTime"]}
+          elif(re_video_change_speed.search(event_type)):
+              # event_type: [browser] "speed_change_video"
+              # event: '{"id":"i4x-HarvardX-CB22x-video-a4fc2d96c8354252bb3e405816308828","code":"IERh8MkASDI","current_time":334.4424743652344,"old_speed":"1.50","new_speed":"1.0"}'
+              v = "video_change_speed"
+              o = self.__getCoursewareObject(event.split("video-")[1].split("\"")[0])
+              r = None
+              m = {
+                  "youtube_id": e["code"],
+                  "playback_position_secs": e["current_time"], # note "current_time" is different than "currentTime"!
+                  "new_playback_speed": e["new_speed"],
+                  "old_playback_speed": e["old_speed"]
+              }
+          elif(re_video_seek.search(event_type)):
+              # event_type: [browser] "seek_video"
+              # event: '{"id":"i4x-HarvardX-CB22x-video-2b509bcac67b49f9bcc51b85072dcef0","code":"Ct_M-_bP81k","old_time":641.696984,"new_time":709,"type":"onSlideSeek"}'
+              v = "video_seek"
+              o = self.__getCoursewareObject(event.split("video-")[1].split("\"")[0])
+              r = None
+              m = {
+                  "youtube_id": e["code"],
+                  "new_playback_position_secs": e["new_time"],
+                  "old_playback_position_secs": e["old_time"],
+                  "type": e["type"]
+              }
 
-        ### POLL ###
-        elif(re_poll_view.search(event_type)): 
-            # (note: polls are often wrapped by conditionals, but we don't log any events for conditionals)
-            # logged when a poll is loaded onscreen (whether answered or not); sometimes several at once
-            # event_type: [server] "/courses/HarvardX/ER22x/2013_Spring/modx/i4x://HarvardX/ER22x/poll_question/T13_poll/get_state"
-            v = "poll_view"
-            o = self.__getCoursewareObject(event_type.split("/")[-2])
-            r = None
-            m = None
-        elif(re_poll_answer.search(event_type)):
-            # logged when user clicks a poll answer; "result" field can be 'yes', 'no', or any other answer value
-            # event_type: [server] "/courses/HarvardX/ER22x/2013_Spring/modx/i4x://HarvardX/ER22x/poll_question/T7_poll/yes"
-            v = "poll_answer"
-            split = event_type.split("/")
-            o = self.__getCoursewareObject(split[-2])
-            r = split[-1]
-            m = None
+          ### SEQUENTIAL ###
+          # TODO: give better names to the meta 'new' and 'old' fields (currently just ints)
+          elif(re_seq_goto.search(event_type) or re_seq_next.search(event_type) or re_seq_prev.search(event_type)):
+              # (note: seq_goto, seq_prev, and seq_next are identical other than the verb name)
+              # when a user navigates via sequential, two events are logged...
+              # event_type: [server] "/courses/HarvardX/ER22x/2013_Spring/modx/i4x://HarvardX/ER22x/sequential/lecture_01/goto_position"
+              # event_type: [browser] "seq_goto" <-- we use this one
+              # event: "{"old":1,"new":2,"id":"i4x://HarvardX/CB22x/sequential/fed323e44ab14407907a7f401f1bfa87"}"
+              v = event_type
+              try: o = self.__getCoursewareObject(event.split("sequential/")[1].split("\"")[0])
+              except IndexError: 
+                  o = self.__getCoursewareObject(event.split("videosequence/")[1].split("\"")[0]) # used in PH207x
+              r = None
+              m = {
+                  "new": e["new"],
+                  "id": e["id"]
+              } 
+              try: m["old"] = e["old"] # sometimes the "old" field is missing
+              except KeyError: m["old"] = None
 
-        ### PROBLEM (CAPA) ###
-        elif(re_problem_view.search(event_type)):
-            # logged when a problem is loaded onscreen; often several at once
-            # event_type: [server] "/courses/HarvardX/CB22x/2013_Spring/modx/i4x://HarvardX/CB22x/problem/bb8a422a718a4788b174220ed0e9c0d7/problem_get"
-            v = "problem_view"
-            o = self.__getCoursewareObject(event_type.split("problem/")[1].split("/")[0])
-            r = None
-            m = None
-        elif((re_problem_check.search(event_type) or re_problem_check2.search(event_type)) and log_item_json["event_source"] == "server"):
-            # when a user clicks 'Check,' three events are logged...
-            # event_type: [browser] "problem_check"
-            # event_type: [server] "/courses/HarvardX/CB22x/2013_Spring/modx/i4x://HarvardX/CB22x/problem/249d6f5aa35d4c0e850ece425676eacd/problem_check"
-            # event_type: [server] "save_problem_check" OR "problem_check" <-- we use this one b/c event field contains correctness info
-            v = "problem_check"
-            o = self.__getCoursewareObject(event.split("problem/")[1].split("'")[0])
-            r = event.split("'")[3] # value of key "success"
-            m = None
-        elif(re_problem_save_success.search(event_type) or re_problem_save_fail.search(event_type)):
-            # when a user clicks 'Save,' three events are logged...
-            # event_type: [browser] "problem_save"
-            # event_type: [server] "/courses/HarvardX/CB22x/2013_Spring/modx/i4x://HarvardX/CB22x/problem/4c26fb3fcef14319964d818d73cc013d/problem_save"; 
-            # event_type: [server] "save_problem_success" OR "save_problem_fail" <-- we use this one to capture success
-            v = "problem_save"
-            o = self.__getCoursewareObject(event.split("problem/")[1].split("'")[0])
-            r = "success" if event_type.split("problem_")[1] == "save" else "fail"
-            m = None
-        elif(re_problem_show_answer.search(event_type)):
-            # when a user clicks 'Show Answer', three events are logged...
-            # event_type: [browser] "problem_show"
-            # event_type: [server] "/courses/HarvardX/CB22x/2013_Spring/modx/i4x://HarvardX/CB22x/problem/2a3fe3442faf4c5ab644768bdad794de/problem_show" <-- we use this
-            # event_type: [server] "showanswer" or "show_answer"
-            v = "problem_show_answer"
-            o = self.__getCoursewareObject(event.split("problem/")[1].split("'")[0])
-            r = None
-            m = None
+          ### POLL ###
+          elif(re_poll_view.search(event_type)): 
+              # (note: polls are often wrapped by conditionals, but we don't log any events for conditionals)
+              # logged when a poll is loaded onscreen (whether answered or not); sometimes several at once
+              # event_type: [server] "/courses/HarvardX/ER22x/2013_Spring/modx/i4x://HarvardX/ER22x/poll_question/T13_poll/get_state"
+              v = "poll_view"
+              o = self.__getCoursewareObject(event_type.split("/")[-2])
+              r = None
+              m = None
+          elif(re_poll_answer.search(event_type)):
+              # logged when user clicks a poll answer; "result" field can be 'yes', 'no', or any other answer value
+              # event_type: [server] "/courses/HarvardX/ER22x/2013_Spring/modx/i4x://HarvardX/ER22x/poll_question/T7_poll/yes"
+              v = "poll_answer"
+              split = event_type.split("/")
+              o = self.__getCoursewareObject(split[-2])
+              r = split[-1]
+              m = None
 
-        ### WIKI ###
-        # TODO: flesh this out with better object names
-        elif(re_wiki_view.search(event_type)):
-            v = "wiki_view"
-            o_name = event_type
-            o = {
-                "object_type" : "url",
-                "object_name" : o_name
-            }
-            r = None
-            m = None
+          ### PROBLEM (CAPA) ###
+          elif(re_problem_view.search(event_type)):
+              # logged when a problem is loaded onscreen; often several at once
+              # event_type: [server] "/courses/HarvardX/CB22x/2013_Spring/modx/i4x://HarvardX/CB22x/problem/bb8a422a718a4788b174220ed0e9c0d7/problem_get"
+              v = "problem_view"
+              o = self.__getCoursewareObject(event_type.split("problem/")[1].split("/")[0])
+              r = None
+              m = None
+          elif((re_problem_check.search(event_type) or re_problem_check2.search(event_type)) and log_item_json["event_source"] == "server"):
+              # when a user clicks 'Check,' three events are logged...
+              # event_type: [browser] "problem_check"
+              # event_type: [server] "/courses/HarvardX/CB22x/2013_Spring/modx/i4x://HarvardX/CB22x/problem/249d6f5aa35d4c0e850ece425676eacd/problem_check"
+              # event_type: [server] "save_problem_check" OR "problem_check" <-- we use this one b/c event field contains correctness info
+              v = "problem_check"
+              o = self.__getCoursewareObject(event.split("problem/")[1].split("'")[0])
+              r = event.split("'")[3] # value of key "success"
+              m = None
+          elif(re_problem_save_success.search(event_type) or re_problem_save_fail.search(event_type)):
+              # when a user clicks 'Save,' three events are logged...
+              # event_type: [browser] "problem_save"
+              # event_type: [server] "/courses/HarvardX/CB22x/2013_Spring/modx/i4x://HarvardX/CB22x/problem/4c26fb3fcef14319964d818d73cc013d/problem_save"; 
+              # event_type: [server] "save_problem_success" OR "save_problem_fail" <-- we use this one to capture success
+              v = "problem_save"
+              o = self.__getCoursewareObject(event.split("problem/")[1].split("'")[0])
+              r = "success" if event_type.split("problem_")[1] == "save" else "fail"
+              m = None
+          elif(re_problem_show_answer.search(event_type)):
+              # when a user clicks 'Show Answer', three events are logged...
+              # event_type: [browser] "problem_show"
+              # event_type: [server] "/courses/HarvardX/CB22x/2013_Spring/modx/i4x://HarvardX/CB22x/problem/2a3fe3442faf4c5ab644768bdad794de/problem_show" <-- we use this
+              # event_type: [server] "showanswer" or "show_answer"
+              v = "problem_show_answer"
+              o = self.__getCoursewareObject(event.split("problem/")[1].split("'")[0])
+              r = None
+              m = None
 
-        ### EMAIL ### 
-        # TODO: not particularly reliable; leaving out for now
-        # problematic example: event_type = /courses/HarvardX/CB22x/2013_Spring/submission_history/mary.finn@oir.ie/i4x://HarvardX/CB22x/problem/6f869b8bb1e04ec5b2106afc80708c9b
-        # elif(re_email.search(event_type)):
-        #     v = "email"
-        #     o_name = event_type.split("/")[-1]
-        #     o = {
-        #         "object_type" : "email",
-        #         "object_name" : o_name
-        #     }
-        #     r = None
-        #     m = None
+          ### WIKI ###
+          # TODO: flesh this out with better object names
+          elif(re_wiki_view.search(event_type)):
+              v = "wiki_view"
+              o_name = event_type
+              o = {
+                  "object_type" : "url",
+                  "object_name" : o_name
+              }
+              r = None
+              m = None
 
-        ### ANNOTATION ### (only in CB22x)
-        # TODO: annocation_edit and annotation_delete -- requires looking at multiple events at once (difficult with current framework)
-        elif(re_annotation_create.search(event_type)):
-            # when the user 'Save's an annotation, two events are logged
-            # event_type: [server] https://courses.edx.org/courses/HarvardX/CB22x/2013_Spring/notes/api/annotations <-- use this one b/c has post info in event field
-            # event_type: [server] https://courses.edx.org/courses/HarvardX/CB22x/2013_Spring/notes/api/annotations/38650 
-            v = "annotation_create"
-            try:
-                s = event.split("uri\\\":\\\"")[1]
-                uri = s.split("\\\"")[0]
-                o_name = uri
-            except Exception:
-                o_name = "[Unavailable]" # sometimes the annotation text is too long and the rest gets truncated
-            o = {
-                "object_type" : "asset_id",
-                "object_name" : o_name
-            }
-            r = None
-            m = None
+          ### EMAIL ### 
+          # TODO: not particularly reliable; leaving out for now
+          # problematic example: event_type = /courses/HarvardX/CB22x/2013_Spring/submission_history/mary.finn@oir.ie/i4x://HarvardX/CB22x/problem/6f869b8bb1e04ec5b2106afc80708c9b
+          # elif(re_email.search(event_type)):
+          #     v = "email"
+          #     o_name = event_type.split("/")[-1]
+          #     o = {
+          #         "object_type" : "email",
+          #         "object_name" : o_name
+          #     }
+          #     r = None
+          #     m = None
 
-        ### BOOK ###
-        elif(re_book_view.search(event_type)):
-            # we infer book view events from the annotation module, which logs the following every page load:
-            # event_type: [server] "/courses/HarvardX/CB22x/2013_Spring/notes/api/search"
-            # event: "{"POST": {}, "GET": {"limit": ["0"], "uri": ["/c4x/HarvardX/CB22x/asset/book_sourcebook_herodotus-kyrnos.html"]}}"     
-            v = "book_view"
-            try:
-                s = event.split("uri\": [\"")[1]
-                uri = s.split("\"")[0]
-                o_name = uri
-            except Exception:
-                o_name = "[Unavailable]"
-            o = {
-                "object_type" : "asset_id",
-                "object_name" : o_name
-            }
-            r = None
-            m = None
-        elif(re_book_view_actual.search(event_type)):
-            # event_type: [browser] book
-            # event: '{"type":"gotopage","old":2,"new":249}' or '{"type":"nextpage","new":3}'
-            v = "book_view"
-            o = {
-                "object_type" : "book_page",
-                "object_name" : e["new"]
-            }
-            r = None
-            m = {e["type"]}
+          ### ANNOTATION ### (only in CB22x)
+          # TODO: annocation_edit and annotation_delete -- requires looking at multiple events at once (difficult with current framework)
+          elif(re_annotation_create.search(event_type)):
+              # when the user 'Save's an annotation, two events are logged
+              # event_type: [server] https://courses.edx.org/courses/HarvardX/CB22x/2013_Spring/notes/api/annotations <-- use this one b/c has post info in event field
+              # event_type: [server] https://courses.edx.org/courses/HarvardX/CB22x/2013_Spring/notes/api/annotations/38650 
+              v = "annotation_create"
+              try:
+                  s = event.split("uri\\\":\\\"")[1]
+                  uri = s.split("\\\"")[0]
+                  o_name = uri
+              except Exception:
+                  o_name = "[Unavailable]" # sometimes the annotation text is too long and the rest gets truncated
+              o = {
+                  "object_type" : "asset_id",
+                  "object_name" : o_name
+              }
+              r = None
+              m = None
 
-        ### FORUM - TOP LEVEL ###
-        # TODO: clean this mess up!!
-        # TODO: come up with way to give forum hashes human-readable names
-        elif(re_forum_view.search(event_type)):
-            v = "forum_view"
-            o_name = self.__getHashPath(event_type)
-            if(o_name == ""): o_name = None
-            o = {
-                "object_type" : "forum_hash",
-                "object_name" : o_name
-            }
-            r = None
-            try: 
-                m = {
-                    "sort_key": e_get["sort_key"][0],
-                    "sort_order": e_get["sort_order"][0],
-                    "page": e_get["page"][0]
-                }
-            except KeyError:
-                m = None # sometimes there won't be anything in the "event"
-        elif(re_forum_view_followed_threads.search(event_type)):
-            v = "forum_view_followed_threads"
-            o_name = ("".join(event_type.split("users/")[1:]).split("/")[0]) # user id is the trailing number
-            o = {
-                "object_type" : "forum_user_id",
-                "object_name" : o_name
-            }
-            r = None
-            m = {
-                "sort_key": e_get["sort_key"][0],
-                "sort_order": e_get["sort_order"][0],
-                "page": e_get["page"][0]
-            }
-            try: m["group_id"] = e_get["group_id"]
-            except KeyError: m["group_id"] = None
-        elif(re_forum_view_user_profile.search(event_type)):
-            v = "forum_view_user_profile"
-            o_name = "".join(event_type.split("users/")[1:]) # user id is the trailing number
-            o = {
-                "object_type" : "forum_user_id",
-                "object_name" : o_name
-            }
-            r = None
-            m = None
-        elif(re_forum_search.search(event_type)):
-            v = "forum_search"
-            r = None
-            try: 
-                m = {
-                    "text": e_get["text"][0].encode("utf-8"),
-                    "sort_key": None,
-                    "sort_order": None,
-                    "page": None
-                }
-            except KeyError:
-                m = {
-                    "sort_key": e_get["sort_key"][0],
-                    "sort_order": e_get["sort_order"][0],
-                    "page": e_get["page"][0]
-                }
-                try: m["text"] = e_get["commentable_ids"][0].encode("utf-8"),
-                except KeyError: m["text"] = None
-            o_name = m["text"]
-            o = {
-                "object_type" : "search_text",
-                "object_name" : o_name
-            }
+          ### BOOK ###
+          elif(re_book_view.search(event_type)):
+              # we infer book view events from the annotation module, which logs the following every page load:
+              # event_type: [server] "/courses/HarvardX/CB22x/2013_Spring/notes/api/search"
+              # event: "{"POST": {}, "GET": {"limit": ["0"], "uri": ["/c4x/HarvardX/CB22x/asset/book_sourcebook_herodotus-kyrnos.html"]}}"     
+              v = "book_view"
+              try:
+                  s = event.split("uri\": [\"")[1]
+                  uri = s.split("\"")[0]
+                  o_name = uri
+              except Exception:
+                  o_name = "[Unavailable]"
+              o = {
+                  "object_type" : "asset_id",
+                  "object_name" : o_name
+              }
+              r = None
+              m = None
+          elif(re_book_view_actual.search(event_type)):
+              # event_type: [browser] book
+              # event: '{"type":"gotopage","old":2,"new":249}' or '{"type":"nextpage","new":3}'
+              v = "book_view"
+              o = {
+                  "object_type" : "book_page",
+                  "object_name" : e["new"]
+              }
+              r = None
+              m = {e["type"]}
 
-        ### FORUM - THREADS ###
-        # (note: thread and comment events are coded separately in case we want to break apart later)
-        elif(re_forum_thread_create.search(event_type)):
-            v = "forum_create"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None # we could put the new thread's text here...
-        elif(re_forum_thread_close.search(event_type)):
-            v = "forum_close"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_thread_delete.search(event_type)):
-            v = "forum_delete"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_thread_downvote.search(event_type)):
-            v = "forum_downvote"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_thread_flag_abuse.search(event_type)):
-            v = "forum_flag_abuse"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_thread_follow.search(event_type)):
-            v = "forum_follow"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_thread_pin.search(event_type)):
-            v = "forum_pin"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_thread_reply.search(event_type)):
-            v = "forum_reply"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None # we could put the new comment's text here...
-        elif(re_forum_thread_unflag_abuse.search(event_type)):
-            v = "forum_unflag_abuse"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_thread_unfollow.search(event_type)):
-            v = "forum_unfollow"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_thread_unpin.search(event_type)):
-            v = "forum_unpin"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_thread_unvote.search(event_type)):
-            v = "forum_unvote"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_thread_update.search(event_type)):
-            v = "forum_update"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_thread_upvote.search(event_type)):
-            v = "forum_upvote"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_thread_view_inline.search(event_type)):
-            v = "forum_view_inline"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_thread_view.search(event_type)):
-            v = "forum_view"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
+          ### FORUM - TOP LEVEL ###
+          # TODO: clean this mess up!!
+          # TODO: come up with way to give forum hashes human-readable names
+          elif(re_forum_view.search(event_type)):
+              v = "forum_view"
+              o_name = self.__getHashPath(event_type)
+              if(o_name == ""): o_name = None
+              o = {
+                  "object_type" : "forum_hash",
+                  "object_name" : o_name
+              }
+              r = None
+              try: 
+                  m = {
+                      "sort_key": e_get["sort_key"][0],
+                      "sort_order": e_get["sort_order"][0],
+                      "page": e_get["page"][0]
+                  }
+              except KeyError:
+                  m = None # sometimes there won't be anything in the "event"
+          elif(re_forum_view_followed_threads.search(event_type)):
+              v = "forum_view_followed_threads"
+              o_name = ("".join(event_type.split("users/")[1:]).split("/")[0]) # user id is the trailing number
+              o = {
+                  "object_type" : "forum_user_id",
+                  "object_name" : o_name
+              }
+              r = None
+              m = {
+                  "sort_key": e_get["sort_key"][0],
+                  "sort_order": e_get["sort_order"][0],
+                  "page": e_get["page"][0]
+              }
+              try: m["group_id"] = e_get["group_id"]
+              except KeyError: m["group_id"] = None
+          elif(re_forum_view_user_profile.search(event_type)):
+              v = "forum_view_user_profile"
+              o_name = "".join(event_type.split("users/")[1:]) # user id is the trailing number
+              o = {
+                  "object_type" : "forum_user_id",
+                  "object_name" : o_name
+              }
+              r = None
+              m = None
+          elif(re_forum_search.search(event_type)):
+              if e_get == None:
+                print "log_item=", log_item
+                print "log_item_json=", log_item_json
+                print "event=", event
+                print "event_type=", event_type
+                print "e=", e
+              v = "forum_search"
+              r = None
+              try: 
+                  m = {
+                      "text": e_get["text"][0].encode("utf-8"),
+                      "sort_key": None,
+                      "sort_order": None,
+                      "page": None
+                  }
+              except KeyError:
+                  m = {
+                      "sort_key": e_get["sort_key"][0],
+                      "sort_order": e_get["sort_order"][0],
+                      "page": e_get["page"][0]
+                  }
+                  try: m["text"] = e_get["commentable_ids"][0].encode("utf-8"),
+                  except KeyError: m["text"] = None
+              o_name = m["text"]
+              o = {
+                  "object_type" : "search_text",
+                  "object_name" : o_name
+              }
 
-        ### FORUM - COMMENTS ###
-        elif(re_forum_comment_delete.search(event_type)):
-            v = "forum_delete"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_comment_downvote.search(event_type)):
-            v = "forum_downvote"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_comment_endorse.search(event_type)):
-            v = "forum_endorse"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_comment_flag_abuse.search(event_type)):
-            v = "forum_flag_abuse"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_comment_reply.search(event_type)):
-            v = "forum_reply" 
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None # we could put the new comment's text here...
-        elif(re_forum_comment_unflag_abuse.search(event_type)):
-            v = "forum_unflag_abuse"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_comment_unvote.search(event_type)):
-            v = "forum_unvote"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_comment_update.search(event_type)):
-            v = "forum_update"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
-        elif(re_forum_comment_upvote.search(event_type)):
-            v = "forum_upvote"
-            o = self.__getForumObject(event_type)
-            r = None
-            m = None
+          ### FORUM - THREADS ###
+          # (note: thread and comment events are coded separately in case we want to break apart later)
+          elif(re_forum_thread_create.search(event_type)):
+              v = "forum_create"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None # we could put the new thread's text here...
+          elif(re_forum_thread_close.search(event_type)):
+              v = "forum_close"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_thread_delete.search(event_type)):
+              v = "forum_delete"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_thread_downvote.search(event_type)):
+              v = "forum_downvote"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_thread_flag_abuse.search(event_type)):
+              v = "forum_flag_abuse"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_thread_follow.search(event_type)):
+              v = "forum_follow"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_thread_pin.search(event_type)):
+              v = "forum_pin"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_thread_reply.search(event_type)):
+              v = "forum_reply"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None # we could put the new comment's text here...
+          elif(re_forum_thread_unflag_abuse.search(event_type)):
+              v = "forum_unflag_abuse"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_thread_unfollow.search(event_type)):
+              v = "forum_unfollow"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_thread_unpin.search(event_type)):
+              v = "forum_unpin"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_thread_unvote.search(event_type)):
+              v = "forum_unvote"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_thread_update.search(event_type)):
+              v = "forum_update"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_thread_upvote.search(event_type)):
+              v = "forum_upvote"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_thread_view_inline.search(event_type)):
+              v = "forum_view_inline"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_thread_view.search(event_type)):
+              v = "forum_view"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
 
-        ### PAGE ### 
-        # need to make sure these objects can be found in course axes; otherwise, likely just noise/malformed urls
-        elif(re_page_view_courseware.search(event_type)):
-            # page_views inside of the courseware look like this...
-            # event_type: [server] /courses/HarvardX/ER22x/2013_Spring/courseware/9158300eee2e4eb7a51d5a01ee01afdd/c2dfcb30d6d2490e85b83f882544fb0f/
-            v = "page_view"
-            path = event_type.split("courseware")[1]
-            if(path[-1] == "/"): path = path[:-1]
-            try: o_name = self.axis_path_to_courseware_name[path]
-            except KeyError: return None # page is noise b/c not in axis
-            o = {
-                "object_type" : "courseware_name",
-                "object_name" : o_name
-            }
-            r = None
-            m = None
-        elif(re_page_view_main.search(event_type)):
-            # page_views outside of the courseware (top-level tabs) look like this...
-            # event_type: [server] /courses/HarvardX/CB22x/2013_Spring/info
-            v = "page_view"
-            last_item = event_type.split("/")[-1]
-            if(last_item == ""): # sometimes has trailing slash
-                last_item = event_type.split("/")[-2]
-            try: o_name = top_level_tabs[last_item]
-            except KeyError: return None # if not in our list of tabs, must be noise
-            o = {
-                "object_type" : "tab_name",
-                "object_name" : o_name
-            }
-            r = None
-            m = None
-        elif(re_page_close.search(event_type)):
-            # TODO: how reliable are page_close events within edX and across browsers?
-            # page: https://courses.edx.org/courses/HarvardX/CB22x/2013_Spring/courseware/74a6ab26887c474eae8a8632600d9618/7b1ef88acd3743eb922d82781a2371cc/
-            # or sometimes: 'https://www.edx.org/courses/HarvardX/CB22x/2013_Spring/courseware/69569a7536674a3c87d9675ddb48f100/a038464de48d45de8d8032c9b6382508/#'
-            v = "page_close"
-            try: path = page.split("courseware")[1]
-            except IndexError:
-                # print "page_close IndexError: " + page
-                return None # usually: https://courses.edx.org/courses/HarvardX/ER22x/2013_Spring/discussion/forum
-            if(len(path) > 0 and path[-1] == "#"): path = path[:-1]
-            if(len(path) > 0 and path[-1] == "/"): path = path[:-1]
-            try: o_name = self.axis_path_to_courseware_name[path]
-            except KeyError: return None # page is noise b/c not in axis
-            o = {
-                "object_type" : "courseware_name",
-                "object_name" : o_name
-            }
-            r = None
-            m = None
-            
-        else:
-            return None
+          ### FORUM - COMMENTS ###
+          elif(re_forum_comment_delete.search(event_type)):
+              v = "forum_delete"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_comment_downvote.search(event_type)):
+              v = "forum_downvote"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_comment_endorse.search(event_type)):
+              v = "forum_endorse"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_comment_flag_abuse.search(event_type)):
+              v = "forum_flag_abuse"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_comment_reply.search(event_type)):
+              v = "forum_reply" 
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None # we could put the new comment's text here...
+          elif(re_forum_comment_unflag_abuse.search(event_type)):
+              v = "forum_unflag_abuse"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_comment_unvote.search(event_type)):
+              v = "forum_unvote"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_comment_update.search(event_type)):
+              v = "forum_update"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+          elif(re_forum_comment_upvote.search(event_type)):
+              v = "forum_upvote"
+              o = self.__getForumObject(event_type)
+              r = None
+              m = None
+
+          ### PAGE ### 
+          # need to make sure these objects can be found in course axes; otherwise, likely just noise/malformed urls
+          elif(re_page_view_courseware.search(event_type)):
+              # page_views inside of the courseware look like this...
+              # event_type: [server] /courses/HarvardX/ER22x/2013_Spring/courseware/9158300eee2e4eb7a51d5a01ee01afdd/c2dfcb30d6d2490e85b83f882544fb0f/
+              v = "page_view"
+              path = event_type.split("courseware")[1]
+              if(path[-1] == "/"): path = path[:-1]
+              try: o_name = path #self.axis_path_to_courseware_name[path]
+              except KeyError: return None # page is noise b/c not in axis
+              o = {
+                  "object_type" : "courseware_name",
+                  "object_name" : o_name
+              }
+              r = None
+              m = None
+          elif(re_page_view_main.search(event_type)):
+              # page_views outside of the courseware (top-level tabs) look like this...
+              # event_type: [server] /courses/HarvardX/CB22x/2013_Spring/info
+              v = "page_view"
+              last_item = event_type.split("/")[-1]
+              if(last_item == ""): # sometimes has trailing slash
+                  last_item = event_type.split("/")[-2]
+              try: o_name = top_level_tabs[last_item]
+              except KeyError: return None # if not in our list of tabs, must be noise
+              o = {
+                  "object_type" : "tab_name",
+                  "object_name" : o_name
+              }
+              r = None
+              m = None
+          elif(re_page_close.search(event_type)):
+              # TODO: how reliable are page_close events within edX and across browsers?
+              # page: https://courses.edx.org/courses/HarvardX/CB22x/2013_Spring/courseware/74a6ab26887c474eae8a8632600d9618/7b1ef88acd3743eb922d82781a2371cc/
+              # or sometimes: 'https://www.edx.org/courses/HarvardX/CB22x/2013_Spring/courseware/69569a7536674a3c87d9675ddb48f100/a038464de48d45de8d8032c9b6382508/#'
+              v = "page_close"
+              try: path = page.split("courseware")[1]
+              except IndexError:
+                  # print "page_close IndexError: " + page
+                  return None # usually: https://courses.edx.org/courses/HarvardX/ER22x/2013_Spring/discussion/forum
+              if(len(path) > 0 and path[-1] == "#"): path = path[:-1]
+              if(len(path) > 0 and path[-1] == "/"): path = path[:-1]
+              try: o_name = path #self.axis_path_to_courseware_name[path]
+              except KeyError: return None # page is noise b/c not in axis
+              o = {
+                  "object_type" : "courseware_name",
+                  "object_name" : o_name
+              }
+              r = None
+              m = None
+              
+          else:
+              return None
+        except:
+          return None
 
         if(v == "page_view" and o_name == None): return None
 
@@ -746,7 +760,7 @@ class LogParser:
 
     def __getCoursewareObject(self, url_name):
         # courseware_name format is {chapter}/{sequential}/{vertical}/{resource}
-        try: o_name = self.axis_url_name_to_courseware_name[url_name]
+        try: o_name = url_name #self.axis_url_name_to_courseware_name[url_name]
         except KeyError: o_name = "[Axis Lookup Failed: " + url_name + "]"
         o = {
             "object_type" : "courseware_name",
