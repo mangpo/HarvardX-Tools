@@ -28,6 +28,7 @@ Created on September 18, 2013
 import re
 import csv
 import json # ujson is faster!
+import os, sys, traceback
 
 # list manually maintained
 possible_verbs = ["annotation_create"
@@ -198,6 +199,14 @@ class LogParser:
         An Parser instance is particular to a course. Initialize by passing
         the relevant Course Axis (.CSV), which is used for identifying objects.
         '''
+        start = axis_csv.rfind("/")
+        end = axis_csv.find("_axis.csv")
+        if start == -1:
+          start = 0
+        if end == -1:
+          end = len(axis_csv)
+        self.error_file = os.getcwd() + axis_csv[start:end]+".error"
+        os.system("rm " + self.error_file)
 
         # we need to build two axis lookup dicts
         # self.axis_path_to_courseware_name = {} # used for page_view and page_close
@@ -509,11 +518,12 @@ class LogParser:
               m = None
           elif(re_forum_search.search(event_type)):
               if e_get == None:
-                print "log_item=", log_item
-                print "log_item_json=", log_item_json
-                print "event=", event
-                print "event_type=", event_type
-                print "e=", e
+                f = open(self.error_file, "a")
+                f.write("-------------------- error ----------------------\n")
+                f.write("event = " + event + "\n")
+                f.write("event_type = " + event_type + "\n")
+                f.close()
+
               v = "forum_search"
               r = None
               try: 
@@ -720,7 +730,10 @@ class LogParser:
               
           else:
               return None
-        except:
+        except Exception as e:
+          f = open(self.error_file, "a")
+          traceback.print_exc(file=f)
+          f.close()
           return None
 
         if(v == "page_view" and o_name == None): return None
