@@ -209,35 +209,35 @@ class LogParser:
         os.system("rm " + self.error_file)
 
         # we need to build two axis lookup dicts
-        # self.axis_path_to_courseware_name = {} # used for page_view and page_close
-        # self.axis_url_name_to_courseware_name = {} # used for everything else
-        # current_chapter = ""
-        # current_sequential = ""
-        # current_vertical = ""
-        # for line in csv.reader(open(axis_csv),delimiter=';'):
-        #     url_name = line[1].strip()
-        #     category = line[2].strip()
-        #     name = line[6].strip()
-        #     path = line[7].strip()
-        #     courseware_name = ""
+        self.axis_path_to_courseware_name = {} # used for page_view and page_close
+        self.axis_url_name_to_courseware_name = {} # used for everything else
+        current_chapter = ""
+        current_sequential = ""
+        current_vertical = ""
+        for line in csv.reader(open(axis_csv),delimiter=';'):
+            url_name = line[1].strip()
+            category = line[2].strip()
+            name = line[6].strip()
+            path = line[7].strip()
+            courseware_name = ""
 
-        #     if(category == "chapter"): 
-        #         current_chapter = name
-        #         courseware_name = current_chapter
-        #     elif(category == "sequential"): 
-        #         current_sequential = name
-        #         courseware_name = "/".join([current_chapter, current_sequential])
-        #     elif(category == "vertical"): 
-        #         current_vertical = name
-        #         courseware_name = "/".join([current_chapter, current_sequential, current_vertical])
-        #     else:
-        #         # category is a resource
-        #         # courseware_name looks like: {chapter}/{sequential}/{vertical}/{resource}
-        #         # sometimes redundant, but most reliable way of uniquely and meaningfully identifying objects
-        #         courseware_name = "/".join([current_chapter, current_sequential, current_vertical, name])
+            if(category == "chapter"): 
+                current_chapter = name
+                courseware_name = current_chapter
+            elif(category == "sequential"): 
+                current_sequential = name
+                courseware_name = "/".join([current_chapter, current_sequential])
+            elif(category == "vertical"): 
+                current_vertical = name
+                courseware_name = "/".join([current_chapter, current_sequential, current_vertical])
+            else:
+                # category is a resource
+                # courseware_name looks like: {chapter}/{sequential}/{vertical}/{resource}
+                # sometimes redundant, but most reliable way of uniquely and meaningfully identifying objects
+                courseware_name = "/".join([current_chapter, current_sequential, current_vertical, name])
 
-        #     self.axis_path_to_courseware_name[path] = courseware_name
-        #     self.axis_url_name_to_courseware_name[url_name] = courseware_name
+            self.axis_path_to_courseware_name[path] = courseware_name
+            self.axis_url_name_to_courseware_name[url_name] = courseware_name
 
     def parseActivity(self, log_item):
         '''
@@ -685,7 +685,7 @@ class LogParser:
               v = "page_view"
               path = event_type.split("courseware")[1]
               if(path[-1] == "/"): path = path[:-1]
-              try: o_name = path #self.axis_path_to_courseware_name[path]
+              try: o_name = self.axis_path_to_courseware_name[path]
               except KeyError: return None # page is noise b/c not in axis
               o = {
                   "object_type" : "courseware_name",
@@ -719,7 +719,7 @@ class LogParser:
                   return None # usually: https://courses.edx.org/courses/HarvardX/ER22x/2013_Spring/discussion/forum
               if(len(path) > 0 and path[-1] == "#"): path = path[:-1]
               if(len(path) > 0 and path[-1] == "/"): path = path[:-1]
-              try: o_name = path #self.axis_path_to_courseware_name[path]
+              try: o_name = self.axis_path_to_courseware_name[path]
               except KeyError: return None # page is noise b/c not in axis
               o = {
                   "object_type" : "courseware_name",
@@ -773,7 +773,7 @@ class LogParser:
 
     def __getCoursewareObject(self, url_name):
         # courseware_name format is {chapter}/{sequential}/{vertical}/{resource}
-        try: o_name = url_name #self.axis_url_name_to_courseware_name[url_name]
+        try: o_name = self.axis_url_name_to_courseware_name[url_name]
         except KeyError: o_name = "[Axis Lookup Failed: " + url_name + "]"
         o = {
             "object_type" : "courseware_name",
