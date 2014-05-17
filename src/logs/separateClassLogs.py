@@ -32,20 +32,38 @@ def getName(line, institute):
     '''
     try:
         dcl = json.loads(line)
-        cl = dcl['page']
-        if cl == None or cl.find(institute) == -1:
+        if 'page' in dcl:
+          cl = dcl['page']
+        if (cl == None or cl.find(institute) == -1) and ('event_type' in dcl):
           cl = dcl['event_type']
-        if cl == None or cl.find(institute) == -1:
-          if not isinstance(dcl['event'],dict):
-            return None
-
+        if (cl == None or cl.find(institute) == -1) and ('event' in dcl):
           cl = dcl['event']
+          if isinstance(cl,basestring):
+            cl = json.loads(cl)
+
           if 'course_id' in cl:
             cl = cl['course_id']
-          else:
+          elif 'course' in cl:
+            cl = cl['course']
+          elif 'problem_id' in cl:
             cl = cl['problem_id']
+          else:
+            cl = None
+        if (cl == None or cl.find(institute) == -1) and ('context' in dcl):
+          cl = dcl['context']
+          if isinstance(cl,basestring):
+            cl = json.loads(cl)
+
+          if 'course_id' in cl:
+            cl = cl['course_id']
+          elif 'course' in cl:
+            cl = cl['course']
+          elif 'problem_id' in cl:
+            cl = cl['problem_id']
+          else:
+            cl = None
           
-        if cl.find(institute):
+        if cl and cl.find(institute):
           loc1 = cl.find(institute)+len(institute)
           loc2 = cl.find("/",loc1)
           if loc2 == -1:
