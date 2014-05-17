@@ -38,7 +38,12 @@ def getName(line, institute):
         if cl == None or cl.find(institute) == -1:
           if not isinstance(dcl['event'],dict):
             return None
-          cl = dcl['event']['problem_id']
+
+          cl = dcl['event']
+          if 'course_id' in cl:
+            cl = cl['course_id']
+          else:
+            cl = cl['problem_id']
           
         if cl.find(institute):
           loc1 = cl.find(institute)+len(institute)
