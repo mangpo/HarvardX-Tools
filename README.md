@@ -68,7 +68,9 @@ In the directory that contains prod-edx* directories in which contain the raw ac
 
 ```
 processLogData.sh course_name start_date end_date
-transformOneLog.sh course_name path_to_course_axis.csv
+transformOneLog.sh course_name.log path_to_course_axis.csv
 ```
 
-You can get `course_name`, `start_date`, and `end_date` from info.csv. Make sure to pick the correct course axis from many course axes generated from the previous step. If you do not want to process raw log data for the entire period that the course is offered, you can simply change `start_date` and `end_date` to your period of interest.
+You can get `course_name`, `start_date`, and `end_date` from info.csv. Make sure to pick the correct course axis from many course axes generated from the previous step. If you do not want to process raw log data for the entire period that the course is offered, you can simply change `start_date` and `end_date` to your period of interest. 
+
+`processLogData.sh` will generate `course_name.log` in the directory in which the script is running. `transformOneLog.sh` takes the generated `course_name.log` and the corresponding course axis generated from the Obtaining Course Axis section as its inputs.
