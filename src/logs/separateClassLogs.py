@@ -22,6 +22,7 @@ def addName(name, dirName):
     for the entries for that course
     '''
     fname = name + '-' + dirName
+    print "addName = ", fname
     fout = open(fname, 'w')
     return fout
     
@@ -63,7 +64,7 @@ def getName(line, institute):
           else:
             cl = None
           
-        if cl and cl.find(institute):
+        if cl and (institute in cl):
           loc1 = cl.find(institute)+len(institute)
           loc2 = cl.find("/",loc1)
           if loc2 == -1:
@@ -75,7 +76,7 @@ def getName(line, institute):
 
         cl = cl.replace('/','-') 
         if cl == '':
-          cl = 'unknown'
+            cl = 'unknown'
     except ValueError:
         cl = 'unknown'
     return cl.strip(u'\u200b')
@@ -108,51 +109,67 @@ def get_log_files(startDate, endDate):
     fileList = []
     for f in all_logs:
       fdate = f[:f.index('_')]
-      if (fdate >= startDate) and (fdate <= endDate):
+      if startDate <= fdate and fdate <= endDate:
         fileList.append(f)
     fileList.sort()
     return fileList
 
+def get_class_list():
+    if os.path.isfile('ClassList.csv'):
+        f = open('ClassList.csv','r')
+        courses = {}
+        for line in f:
+            (course,start,end) = line.split(',')
+            courses[course] = (start,end)
+        f.close()
+        return courses
+    else:
+        return {}
+
+def write_class_list(courses):
+    f = open('NewClassList.csv','w')
+    for course in courses:
+        (start,end) = courses[course]
+        f.write(course + "," + start + "," + end + "\n")
+    f.close()
+
 if __name__ == '__main__':
-    name = sys.argv[1]
-    startDate = sys.argv[2]
-    endDate = sys.argv[3]
+    names = sys.argv[1].split(',')
 
-    full_name = name.split('-')
+    f = open("../dates.txt","r")
+    startDate = f.readline().rstrip("\n")
+    endDate = f.readline().rstrip("\n")
+    f.close()
+    
+    full_name = names[0].split('-')
     institute = full_name[0] + '/'
-    course = full_name[1]
-    term = full_name[2]
-    print "Course Name:", course
 
-    courseDict = {}
-    output = None
+    courses = [x[x.find("-")+1:x.rfind("-")] for x in names]
+    print "Course Names:", courses
+    print "dates:", startDate, endDate
+
+    output = {}
+    unknown = open("unknownLogs","a")
     dirName = os.getcwd()
     dirName = dirName[dirName.rindex('/')+1:]
-    loglist = get_log_files(startDate, endDate)
+    loglist = get_log_files(startDate,endDate)
     print "Processing:"
     print loglist
     for logName in loglist:
         infile = open(logName, 'r')
         for line in infile:
             cName = getName(line, institute)
-            if cName:
-              if cName == course:
-                if not output:
-                  output = addName(name, dirName)
-                output.write(line)
+            if cName in courses:
+                if not(cName in output):
+                    f = addName(names[courses.index(cName)], dirName)
+                    output[cName] = f
+                output[cName].write(line)
+            elif cName == "unknown":
+                unknown.write(line)
 
-              if cName not in courseDict:
-                courseDict[cName] = 1
-              else:
-                courseDict[cName] += 1
         infile.close()
     
-    if output:
-      output.close()
+    for x in output:
+        output[x].close()
+    unknown.close()
 
-    clFile = csv.writer(open('../ClassList.csv', 'w'))
-    for c in iter(courseDict):
-      try:
-        clFile.writerow([c, courseDict[c]])
-      except UnicodeEncodeError:
-        print "UnicodeEncodeError at class", c

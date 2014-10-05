@@ -18,6 +18,7 @@ import json
 import glob
 import csv
 import sys
+import os
 
 def buildClassList():
     classes = []
@@ -53,25 +54,30 @@ def writeCombLog(fname, log):
     if len(log) < 1:
         print 'Nothing to write for log', fname
         return
-    outfile = open(fname, 'w')
+    outfile = open(fname, 'a')
     for d in sorted(iter(log)):
         for l in log[d]:
             i += 1
             outfile.write(l)
     print 'wrote', str(i), 'lines to output file', fname
+    print '-----------------'
     outfile.close()
 
 if __name__ == '__main__':
     cl = sys.argv[1]
-    
+
     print 'about to process logs for', cl
     prodLogs = []
     logFiles = glob.glob('*/' + cl + '-*')
+    print logFiles
     for f in logFiles:
       print 'processing log', f
       prodLogs.append(f)
+
     prodDict = combineLogs(cl, prodLogs)
     writeCombLog(cl + '.log', prodDict)
 
+    for f in logFiles:
+      os.system("rm %s" % f)
 
 
