@@ -47,6 +47,46 @@ _info.csv_ and course axes will be used in the next step. Note that if there is 
 
 You can choose to process activity logs of all classes at once or just one log of a specific class at a time.
 
+## Processing Selected Courses
+
+### processLogData.py
+
+In the directory that contains _prod-edx*_ directories in which contain the raw activity logs, run:
+
+```
+processLogData.py course_name1,course_name2 start_date end_date
+```
+You can get `course_name`, `start_date`, and `end_date` from _info.csv_. 
+
+The first argument to the script is a list of course names, separated `,`. The list can be of any abitrary size. Most courses do not have the exactly same start and end dates. However, you can group the ones that have similar start and end dates together (e.g. the ones offered in the same semester), and specify start and end dates that cover all of the classes in the list. This will make the overall log processing run faster.
+
+`processLogData.py` will:
+* generate a separate log file for each class inside each _prod-edx*_ directory. The log file is named after the class name.
+* combine the separated log files of the same class located in different _prod-edx*_ directories into one log file and store the combined log in the directory in which the script is run.
+* generate `ClassList.csv` to keep track of between which dates the course have already been processed.
+
+The combined log file `course_name.log` for each course and `ClassList.csv` will be generated in the directory in which the script is running.
+
+If you have already processed `couresA` between `date1` and `date2`, and you want to process more logs between `date2` and `date3`. You have to use `-` as the start date as follows:
+
+```
+processLogData.py courseA - date3
+```
+
+In this case, the script will **append** new logs to `course_name.log`
+
+### transformOneLog.sh
+
+After you obtain the combined log from, you then run
+
+```
+transformOneLog.sh course_name.log path_to_course_axis.csv
+```
+
+`transformOneLog.sh` takes a generated `course_name.log` from `processLogData.py` and the corresponding course axis generated from the Obtaining Course Axis section as its inputs. It then transforms the combined log file into a nicely formatted csv file for each class.
+
+Note that only `processLogData.py` is incremental (appending new logs to the ones that have already been processed). `transfromOneLog.sh` is not incremental. It will transform the entire given log file.
+
 ## Processing All Logs
 
 **Caution**: You can move around or rename the directory that contains course axes and _info.csv_ generated from the previous step, but make sure that all course axes and _info.csv_ are still in the same directory.
@@ -57,22 +97,5 @@ Then, in the directory that contains prod-edx* directories in which contain the 
 processAll.py path_to_info.csv
 ```
 
-The script will:
-* generate a separate log file for each class inside each _prod-edx*_ directory. The log file is named after the class name.
-* combine the separated log files of the same class located in different _prod-edx*_ directories into one log file and store the combined log in the directory in which the script is run.
-* transform the combined log file into a nicely formatted csv file for each class.
+The script will call `processLogData.py` and `transformOneLog.sh` for every course appeared in _info.csv_. Note that running this script is not as efficient as running `processLogData.py` and `transformOneLog.sh` manually. This is because it will not separate logs of different courses at the same time, unlike `processLogData.py` when a list of courses is given.
 
-Note that the script will only generate the nicely formatted csv files for the classes listed in _info.csv_.
-
-## Processing One Log
-
-In the directory that contains _prod-edx*_ directories in which contain the raw activity logs, run:
-
-```
-processLogData.sh course_name start_date end_date
-transformOneLog.sh course_name.log path_to_course_axis.csv
-```
-
-You can get `course_name`, `start_date`, and `end_date` from _info.csv_. Make sure to pick the correct course axis from many course axes generated from the previous step. If you do not want to process raw log data for the entire period that the course is offered, you can simply change `start_date` and `end_date` to your period of interest. 
-
-`processLogData.sh` will generate `course_name.log` in the directory in which the script is running. `transformOneLog.sh` takes the generated `course_name.log` and the corresponding course axis generated from the Obtaining Course Axis section as its inputs.
