@@ -41,7 +41,7 @@ The script will generate a directory named _csv_files_ containing many files inc
 * one _course_name_axis.csv_ for each class
 * _axis.error_ logging all the errors occurred during generating course axes. Check the error messages in this file to investigate why the course axis of any particular class is not being generated.
 
-_info.csv_ and course axes will be used in the next step. Note that if there is an error generating course axis or there is no start or end date for a specific class in its xml.tar.gz, that class is excluded from _info.csv_.
+_info.csv_ and course axes will be useful in the next step. Note that if there is an error generating course axis or there is no start or end date for a specific class in its xml.tar.gz, that class is excluded from _info.csv_.
 
 # Processing Activity Logs
 

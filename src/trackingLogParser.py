@@ -287,7 +287,9 @@ class LogParser:
               v = "video_play" if "play_video" == event_type else "video_pause"
               o = self.__getCoursewareObject(event.split("video-")[1].split("\"")[0])
               r = None
-              m = {"youtube_id": e["code"]}
+              m = {}
+              try: m["youtube_id"] = e["code"]
+              except KeyError: m["youtube_id"] = None
               try: m["playback_speed"] = e["speed"]
               except KeyError: m["playback_speed"] = None
               try: m["playback_position_secs"] = e["currentTime"] # sometimes this field is missing
@@ -306,11 +308,12 @@ class LogParser:
               o = self.__getCoursewareObject(event.split("video-")[1].split("\"")[0])
               r = None
               m = {
-                  "youtube_id": e["code"],
                   "playback_position_secs": e["current_time"], # note "current_time" is different than "currentTime"!
                   "new_playback_speed": e["new_speed"],
                   "old_playback_speed": e["old_speed"]
               }
+              try: m["youtube_id"] = e["code"]
+              except KeyError: m["youtube_id"] = None
           elif(re_video_seek.search(event_type)):
               # event_type: [browser] "seek_video"
               # event: '{"id":"i4x-HarvardX-CB22x-video-2b509bcac67b49f9bcc51b85072dcef0","code":"Ct_M-_bP81k","old_time":641.696984,"new_time":709,"type":"onSlideSeek"}'
@@ -318,12 +321,12 @@ class LogParser:
               o = self.__getCoursewareObject(event.split("video-")[1].split("\"")[0])
               r = None
               m = {
-                  "youtube_id": e["code"],
                   "new_playback_position_secs": e["new_time"],
                   "old_playback_position_secs": e["old_time"],
                   "type": e["type"]
               }
-
+              try: m["youtube_id"] = e["code"]
+              except KeyError: m["youtube_id"] = None
           ### SEQUENTIAL ###
           # TODO: give better names to the meta 'new' and 'old' fields (currently just ints)
           elif(re_seq_goto.search(event_type) or re_seq_next.search(event_type) or re_seq_prev.search(event_type)):
