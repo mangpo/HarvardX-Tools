@@ -99,6 +99,13 @@ def makePersonClick(axis, log, outpath, outpath_discards=None, limit=-1):
     total_activities = 0
     start_time = datetime.datetime.now()
 
+    # error log
+    start = axis.rfind("/")
+    end = axis.find("_axis.csv")
+    if end == -1:
+      end = len(axis)
+    error_file = os.getcwd() + "/" + axis[start+1:end]+".error"
+
     for line in open(log, "r"):
         if(line_num == limit): break
         line_num += 1
@@ -107,6 +114,12 @@ def makePersonClick(axis, log, outpath, outpath_discards=None, limit=-1):
             sys.stdout.flush()
             
         activity = parser.parseActivity(line)
+
+        if activity is None:
+          print line
+          f = open(error_file, "a")
+          f.write(line)
+          f.close()
 
         if activity is not None:
             total_activities += 1
