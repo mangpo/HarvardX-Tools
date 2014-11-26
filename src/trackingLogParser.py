@@ -121,7 +121,7 @@ re_problem_save_success = re.compile("^save_problem_success$")
 re_problem_save_fail = re.compile("^save_problem_fail$")
 re_problem_check = re.compile("^problem_check$") # we want the server event b/c contains correctness info
 re_problem_check2 = re.compile("^save_problem_check$") # also needs to be a server event
-re_problem_show_answer = re.compile("^showanswer$")
+re_problem_show_answer = re.compile("^show_answer$")
 
 re_wiki_view = re.compile("wiki")
 
