@@ -71,7 +71,8 @@ possible_verbs = ["annotation_create"
                     ,"video_play"
                     ,"video_seek"
                     ,"video_show_transcript"
-                    ,"wiki_view"]
+                    ,"wiki_view"
+                    ,"accordion"]
 
 # TODO: ADD THESE TO COURSE AXIS (?)
 # top-level tabs are not available in course axes so I've hard-coded them in here; 
@@ -167,6 +168,8 @@ re_page_view_courseware = re.compile("courseware\/[^/]+([^/]+)*\/?")
 re_page_view_main = re.compile("courses\/[^/]+\/[^/]+\/[^/]+\/[^/]+") # very general, run after everything else
 re_page_close = re.compile("^page_close$")
 
+re_accordion = re.compile("^accordion$")
+
 
 # PARSER OBJECT
 # parameterized by a course axis (for identifying objects)
@@ -198,7 +201,9 @@ class LogParser:
             path = line[7].strip()
             courseware_name = ""
 
-            if(category == "chapter"): 
+            if(category == "tab"): 
+                courseware_name = name
+            elif(category == "chapter"): 
                 current_chapter = name
                 courseware_name = current_chapter
             elif(category == "sequential"): 
@@ -226,13 +231,12 @@ class LogParser:
         log_item_json = json.loads(log_item)
 
         try:
-            event = str(log_item_json["event"]) # cast to string b/c as dict isn't consistent in logs
             event_type = log_item_json["event_type"]
             event_type = event_type.replace(";_", "/")
             page = log_item_json["page"]
         except Exception as e:
             # malformed log_item
-            print "catch exception, write to ", self.error_file
+            #print "catch exception, write to ", self.error_file
             f = open(self.error_file, "a")
             f.write("malformed log_item\n")
             traceback.print_exc(file=f)
@@ -244,7 +248,13 @@ class LogParser:
         e_post = None
 
         try:
+            event = str(log_item_json["event"]) # cast to string b/c as dict isn't consistent in logs
             e = json.loads(event)
+        except Exception:
+            event = log_item_json["event"]
+            e = event
+
+        try:
             e_get = e["GET"]
             e_post = e["POST"]
         except ValueError:
@@ -682,7 +692,7 @@ class LogParser:
               last_item = event_type.split("/")[-1]
               if(last_item == ""): # sometimes has trailing slash
                   last_item = event_type.split("/")[-2]
-              try: o_name = top_level_tabs[last_item]
+              try: o_name = self.getTabName(last_item)
               except KeyError as e: raise e #return None # if not in our list of tabs, must be noise
               o = {
                   "object_type" : "tab_name",
@@ -704,11 +714,22 @@ class LogParser:
               o = self.__getCoursewareObjectFromPath(path)
               r = None
               m = None
+          elif(re_accordion.search(event_type)):
+              v = "accordion"
+              try: path = page.split("courseware")[1]
+              except IndexError as e:
+                  # print "page_close IndexError: " + page
+                  raise e
+              if(len(path) > 0 and path[-1] == "#"): path = path[:-1]
+              if(len(path) > 0 and path[-1] == "/"): path = path[:-1]
+              o = self.__getCoursewareObjectFromPath(path)
+              r = None
+              m = None
               
           else:
               return None
         except Exception as e:
-          print "catch exception, write to ", self.error_file
+          #print "catch exception, write to ", self.error_file
           f = open(self.error_file, "a")
           traceback.print_exc(file=f)
           f.close()
@@ -768,3 +789,9 @@ class LogParser:
             "object_name" : o_name
         }
         return o
+
+    def getTabName(self, item):
+      if item in top_level_tabs:
+        return top_level_tabs[item]
+      else:
+        return self.axis_url_name_to_courseware_name[item]

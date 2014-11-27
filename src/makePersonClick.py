@@ -116,7 +116,7 @@ def makePersonClick(axis, log, outpath, outpath_discards=None, limit=-1):
         activity = parser.parseActivity(line)
 
         if activity is None:
-          print line
+          #print line
           f = open(error_file, "a")
           f.write(line)
           f.close()
