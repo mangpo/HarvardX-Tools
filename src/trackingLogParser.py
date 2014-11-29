@@ -123,6 +123,7 @@ re_problem_save_fail = re.compile("^save_problem_fail$")
 re_problem_check = re.compile("^problem_check$") # we want the server event b/c contains correctness info
 re_problem_check2 = re.compile("^save_problem_check$") # also needs to be a server event
 re_problem_show_answer = re.compile("^show_answer$")
+re_problem_show_answer2 = re.compile("^showanswer$")
 
 re_wiki_view = re.compile("wiki")
 
@@ -187,6 +188,7 @@ class LogParser:
           end = len(axis_csv)
         self.error_file = os.getcwd() + "/" + axis_csv[start+1:end]+".error"
         os.system("rm " + self.error_file)
+        self.error_ignore = ["problem_check", "problem_save", "goto_position"]
 
         # we need to build two axis lookup dicts
         self.axis_path_to_courseware_name = {} # used for page_view and page_close
@@ -235,26 +237,19 @@ class LogParser:
             event_type = event_type.replace(";_", "/")
             page = log_item_json["page"]
         except Exception as e:
-            # malformed log_item
-            #print "catch exception, write to ", self.error_file
-            f = open(self.error_file, "a")
-            f.write("malformed log_item\n")
-            traceback.print_exc(file=f)
-            f.close()
-            return None
+            return self.checkError(log_item)
+
+        try:
+            event = str(log_item_json["event"]) # cast to string b/c as dict isn't consistent in logs
+        except:
+            event = log_item_json["event"]
         
         e = None
         e_get = None
         e_post = None
 
         try:
-            event = str(log_item_json["event"]) # cast to string b/c as dict isn't consistent in logs
             e = json.loads(event)
-        except Exception:
-            event = log_item_json["event"]
-            e = event
-
-        try:
             e_get = e["GET"]
             e_post = e["POST"]
         except ValueError:
@@ -385,11 +380,11 @@ class LogParser:
               o = self.__getCoursewareObject(event.split("problem/")[1].split("'")[0])
               r = "success" if event_type.split("problem_")[1] == "save" else "fail"
               m = None
-          elif(re_problem_show_answer.search(event_type)):
+          elif(re_problem_show_answer.search(event_type) or re_problem_show_answer2.search(event_type)):
               # when a user clicks 'Show Answer', three events are logged...
               # event_type: [browser] "problem_show"
-              # event_type: [server] "/courses/HarvardX/CB22x/2013_Spring/modx/i4x://HarvardX/CB22x/problem/2a3fe3442faf4c5ab644768bdad794de/problem_show" <-- we use this
-              # event_type: [server] "showanswer" or "show_answer"
+              # event_type: [server] "/courses/HarvardX/CB22x/2013_Spring/modx/i4x://HarvardX/CB22x/problem/2a3fe3442faf4c5ab644768bdad794de/problem_show"
+              # event_type: [server] "showanswer" or "show_answer" <-- we use this
               v = "problem_show_answer"
               o = self.__getCoursewareObject(event.split("problem/")[1].split("'")[0])
               r = None
@@ -727,13 +722,9 @@ class LogParser:
               m = None
               
           else:
-              return None
+              return self.checkIgnoreEvent(log_item)
         except Exception as e:
-          #print "catch exception, write to ", self.error_file
-          f = open(self.error_file, "a")
-          traceback.print_exc(file=f)
-          f.close()
-          return None
+          return self.checkError(log_item)
 
         #if(v == "page_view" and o_name == None): return None
 
@@ -795,3 +786,23 @@ class LogParser:
         return top_level_tabs[item]
       else:
         return self.axis_url_name_to_courseware_name[item]
+
+    def checkIgnoreEvent(self, log_item):
+      match = None
+      for phase in self.error_ignore:
+        if log_item.find(phase) >= 0:
+          return phase
+      
+      log_item_json = json.loads(log_item)
+      if log_item_json["username"] == "":
+        return "empty_username"
+      return None
+
+    def checkError(self, log_item):
+      match = self.checkIgnoreEvent(log_item)
+      if not match:
+        f = open(self.error_file, "a")
+        traceback.print_exc(file=f)
+        f.close()
+      return match
+      
