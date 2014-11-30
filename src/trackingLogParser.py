@@ -170,7 +170,7 @@ re_forum_comment_update = re.compile("discussion\/comments\/[^/]+/update$")
 re_forum_comment_upvote = re.compile("discussion\/comments\/[^/]+/upvote$")
 
 re_page_view_courseware = re.compile("courseware\/[^/]+([^/]+)*\/?")
-re_page_view_main = re.compile("courses\/[^/]+\/[^/]+\/[^/]+\/[^/]+") # very general, run after everything else
+re_page_view_main = re.compile("courses\/.+") # very general, run after everything else
 re_page_close = re.compile("^page_close$")
 
 re_accordion = re.compile("^accordion$")
