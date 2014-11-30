@@ -62,6 +62,7 @@ possible_verbs = ["annotation_create"
                     ,"problem_save"
                     ,"problem_view"
                     ,"problem_show_answer"
+                    ,"problem_reset"
                     ,"seq_goto"
                     ,"seq_next"
                     ,"seq_prev"
@@ -72,7 +73,8 @@ possible_verbs = ["annotation_create"
                     ,"video_seek"
                     ,"video_show_transcript"
                     ,"wiki_view"
-                    ,"accordion"]
+                    ,"accordion"
+                    ,"enroll"]
 
 # TODO: ADD THESE TO COURSE AXIS (?)
 # top-level tabs are not available in course axes so I've hard-coded them in here; 
@@ -124,6 +126,8 @@ re_problem_check = re.compile("^problem_check$") # we want the server event b/c 
 re_problem_check2 = re.compile("^save_problem_check$") # also needs to be a server event
 re_problem_show_answer = re.compile("^show_answer$")
 re_problem_show_answer2 = re.compile("^showanswer$")
+re_problem_reset = re.compile("^reset_problem$")
+re_problem_reset_fail = re.compile("^reset_problem_fail$")
 
 re_wiki_view = re.compile("wiki")
 
@@ -170,6 +174,7 @@ re_page_view_main = re.compile("courses\/[^/]+\/[^/]+\/[^/]+\/[^/]+") # very gen
 re_page_close = re.compile("^page_close$")
 
 re_accordion = re.compile("^accordion$")
+re_enroll = re.compile("^edx.course.enrollment.activated$")
 
 
 # PARSER OBJECT
@@ -188,7 +193,7 @@ class LogParser:
           end = len(axis_csv)
         self.error_file = os.getcwd() + "/" + axis_csv[start+1:end]+".error"
         os.system("rm " + self.error_file)
-        self.error_ignore = ["problem_check", "problem_save", "goto_position"]
+        self.error_ignore = ["problem_check", "problem_save", "problem_reset", "problem_show", "goto_position", "load_video", "problem_graded"]
 
         # we need to build two axis lookup dicts
         self.axis_path_to_courseware_name = {} # used for page_view and page_close
@@ -388,6 +393,20 @@ class LogParser:
               v = "problem_show_answer"
               o = self.__getCoursewareObject(event.split("problem/")[1].split("'")[0])
               r = None
+              m = None
+          elif re_problem_reset.search(event_type):
+              # when a user clicks 'Reset,' two events are logged...
+              # event_type: [server] "/courses/BerkeleyX/CS10/Beauty_and_Joy_of_Computing/xblock/i4x:;_;_BerkeleyX;_CS10;_problem;_7a50a69b46d640bd88f0f4a43998c098/handler/xmodule_handler/problem_reset"
+              # event_type: [server] "reset_problem" <-- we use this one
+              v = "problem_reset"
+              o = self.__getCoursewareObject(event.split("problem/")[1].split("'")[0])
+              r = None
+              m = None
+          elif re_problem_reset_fail.search(event_type):
+              # event_type: [server] "reset_problem_fail"
+              v = "problem_reset"
+              o = self.__getCoursewareObject(event.split("problem/")[1].split("'")[0])
+              r = "fail"
               m = None
 
           ### WIKI ###
@@ -720,6 +739,14 @@ class LogParser:
               o = self.__getCoursewareObjectFromPath(path)
               r = None
               m = None
+          elif(re_enroll.search(event_type)):
+              v = "enroll"
+              o = {
+                  "object_type" : "",
+                  "object_name" : ""
+              }
+              r = None
+              m = None
               
           else:
               return self.checkIgnoreEvent(log_item)
@@ -784,8 +811,10 @@ class LogParser:
     def getTabName(self, item):
       if item in top_level_tabs:
         return top_level_tabs[item]
-      else:
+      elif item in self.axis_url_name_to_courseware_name:
         return self.axis_url_name_to_courseware_name[item]
+      else:
+        return item
 
     def checkIgnoreEvent(self, log_item):
       match = None
