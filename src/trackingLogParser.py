@@ -527,14 +527,7 @@ class LogParser:
               }
               r = None
               m = None
-          elif(re_forum_search.search(event_type)):
-              if e_get == None:
-                f = open(self.error_file, "a")
-                f.write("-------------------- error ----------------------\n")
-                f.write("event = " + event + "\n")
-                f.write("event_type = " + event_type + "\n")
-                f.close()
-
+          elif(re_forum_search.search(event_type) and e_get):
               v = "forum_search"
               r = None
               try: 
@@ -557,6 +550,21 @@ class LogParser:
                   "object_type" : "search_text",
                   "object_name" : o_name
               }
+
+          elif re_forum_search.search(event_type):
+              v = "forum_search"
+              r = None
+              m = {
+                  "text": "malformed json",
+                  "sort_key": None,
+                  "sort_order": None,
+                  "page": None
+                  }
+              o = {
+                  "object_type" : "search_text",
+                  "object_name" : "malformed json"
+              }
+              
 
           ### FORUM - THREADS ###
           # (note: thread and comment events are coded separately in case we want to break apart later)
