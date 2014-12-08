@@ -239,7 +239,7 @@ class LogParser:
 
         try:
             event_type = log_item_json["event_type"]
-            event_type = event_type.replace(";_", "/")
+            event_type = event_type.replace(";_", "/").replace("\n","")
             page = log_item_json["page"]
         except Exception as e:
             return self.checkError(log_item)
