@@ -114,23 +114,6 @@ def makePersonClick(axis, log, outpath, outpath_discards=None, limit=-1):
             
         activity = parser.parseActivity(line)
 
-        # if activity is None:
-        #   #print line
-        #   # f = open(error_file, "a")
-        #   # f.write(line)
-        #   # f.close()
-        #   if line.find("problem_check") >= 0:
-        #     discard_problem_check += 1
-        #   elif line.find("problem_save") >= 0:
-        #     discard_problem_save += 1
-        #   elif line.find("goto_position") >= 0:
-        #     discard_goto += 1
-        #   else:
-        #     discard_other += 1
-        #     f = open(parser.error_file, "a")
-        #     f.write(line)
-        #     f.close()
-
         if activity is None:
           total_discards += 1
           discard_other += 1
@@ -150,33 +133,33 @@ def makePersonClick(axis, log, outpath, outpath_discards=None, limit=-1):
             if(activity["actor"] not in unique_users):
                 unique_users[activity["actor"]] = 1
             
-            outcsv.writerow([activity["time"], "", activity["actor"], activity["verb"], activity["object"]["object_name"], activity["object"]["object_type"], activity["result"], activity["meta"], activity["ip"], activity["event"], activity["event_type"], activity["page"], activity["agent"]])
+            #outcsv.writerow([activity["time"], "", activity["actor"], activity["verb"], activity["object"]["object_name"], activity["object"]["object_type"], activity["result"], activity["meta"], activity["ip"], activity["event"], activity["event_type"], activity["page"], activity["agent"]])
 
-            # # record activity
-            # user = activity["actor"]
-            # if user in activities_without_durations:
-            #     # calculate difference, record previous activity, and store the new one
-            #     old_activity = activities_without_durations[user]
-            #     activities_without_durations[user] = activity
-            #     time_delta = (parse_time(activity["time"]) - parse_time(old_activity["time"])).total_seconds()
-            #     outcsv.writerow([old_activity["time"], time_delta, old_activity["actor"], old_activity["verb"], old_activity["object"]["object_name"], old_activity["object"]["object_type"], old_activity["result"], old_activity["meta"], old_activity["ip"], old_activity["event"], old_activity["event_type"], old_activity["page"], old_activity["agent"]])
-            # else:
-            #     # store it to log later
-            #     activities_without_durations[user] = activity
-#         else:
-#             total_discards += 1
-#             log_item_clean = json.loads(line)
-#             if(log_item_clean["event_type"] not in discard_counts):
-#                 discard_counts[log_item_clean["event_type"]] = 1
-#             else:
-#                 discard_counts[log_item_clean["event_type"]] += 1
-#             if outcsv_discards is not None: 
-#                 try: outcsv_discards.writerow([log_item_clean["time"], log_item_clean["event"], log_item_clean["event_type"], log_item_clean["page"], log_item_clean["username"]])
-#                 except UnicodeEncodeError: pass #print log_item_clean
+            # record activity
+            user = activity["actor"]
+            if user in activities_without_durations:
+                # calculate difference, record previous activity, and store the new one
+                old_activity = activities_without_durations[user]
+                activities_without_durations[user] = activity
+                time_delta = (parse_time(activity["time"]) - parse_time(old_activity["time"])).total_seconds()
+                outcsv.writerow([old_activity["time"], time_delta, old_activity["actor"], old_activity["verb"], old_activity["object"]["object_name"], old_activity["object"]["object_type"], old_activity["result"], old_activity["meta"], old_activity["ip"], old_activity["event"], old_activity["event_type"], old_activity["page"], old_activity["agent"]])
+            else:
+                # store it to log later
+                activities_without_durations[user] = activity
+        # else:
+        #     total_discards += 1
+        #     log_item_clean = json.loads(line)
+        #     if(log_item_clean["event_type"] not in discard_counts):
+        #         discard_counts[log_item_clean["event_type"]] = 1
+        #     else:
+        #         discard_counts[log_item_clean["event_type"]] += 1
+        #     if outcsv_discards is not None: 
+        #         try: outcsv_discards.writerow([log_item_clean["time"], log_item_clean["event"], log_item_clean["event_type"], log_item_clean["page"], log_item_clean["username"]])
+        #         except UnicodeEncodeError: pass #print log_item_clean
     
-    # # write remaining activities without durations (will have empty "secs_to_next")
-    # for k,v in activities_without_durations.items():
-    #     outcsv.writerow([v["time"], None, v["actor"], v["verb"], v["object"]["object_name"], v["object"]["object_type"], v["result"], v["meta"], v["ip"], v["event"], v["event_type"], v["page"], v["agent"]])
+    # write remaining activities without durations (will have empty "secs_to_next")
+    for k,v in activities_without_durations.items():
+        outcsv.writerow([v["time"], None, v["actor"], v["verb"], v["object"]["object_name"], v["object"]["object_type"], v["result"], v["meta"], v["ip"], v["event"], v["event_type"], v["page"], v["agent"]])
     
     print ""
     print "\nSUMMARY\n-------"
